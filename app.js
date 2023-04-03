@@ -63,6 +63,8 @@ const inputLoanAmount = document.querySelector('.form__input--loan-amount');
 const inputCloseUsername = document.querySelector('.form__input--user');
 const inputClosePin = document.querySelector('.form__input--pin');
 
+let logOutTimerId;
+
 // App
 const currencies = new Map([
   [ 'EUR', '€' ],
@@ -205,8 +207,18 @@ const sortMovements = (movements, currencySign) => {
     currencySign);
 };
 
+const updateLogOutTimer = () => {
+  let seconds = 600;
+
+  setInterval(() => {
+    labelTimer.textContent = ``;
+  }, 1000);
+};
+
 btnLogin.addEventListener('click', event => {
   event.preventDefault();
+
+  if (logOutTimerId) clearTimeout(logOutTimerId);
 
   const {
     isValid,
@@ -228,6 +240,8 @@ btnLogin.addEventListener('click', event => {
     renderSummary(validUser, currencySign);
     btnSort.addEventListener('click',
       () => sortMovements(movements, currencySign));
+
+    // logOutTimerId = startLogOutTimer();
   }
 });
 
