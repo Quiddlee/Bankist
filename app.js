@@ -78,13 +78,14 @@ const validateAndGetUser = () => {
   let validUser;
 
   const [ inputLogin, inputPin ] = [
-    inputLoginUsername.value.trim().toLowerCase(),
-    +inputLoginPin.value.trim().toLowerCase() ];
+    inputLoginUsername,
+    inputLoginPin ].map(
+    elem => elem.value.trim().toLowerCase());
 
   for (const account of accounts) {
     const { owner, pin, login } = account;
 
-    if (login === inputLogin && pin === inputPin) {
+    if (login === inputLogin && pin === +inputPin) {
       isValid = true;
       validUser = account;
       break;
@@ -99,15 +100,16 @@ const renderWelcomeMessage = (userName) => {
   const hours = new Date().getHours();
   let message = 'Good ';
 
-  if (hours < 12) {
-    message += 'Morning';
-  } else if (hours >= 12 && hours < 18) {
-    message += 'Day';
-  } else if (hours >= 18 && hours < 21) {
-    message += 'Afternoon';
-  } else if (hours >= 21 && hours < 23) {
-    message += 'Evening';
-  }
+  message +=
+    hours >= 23 && hours < 12
+      ? 'Morning'
+      : hours >= 12 && hours < 18
+        ? 'Day'
+        : hours >= 18 && hours < 21
+          ? 'Afternoon'
+          : hours >= 21 && hours < 23
+            ? 'Evening'
+            : 'Night';
 
   return labelWelcome.textContent = `${ message }, ${ userName.slice(0,
     userName.indexOf(' ')) }!`;
@@ -140,9 +142,8 @@ const renderBalance = (user, currencySign) => {
     (curr, prev) => curr + prev)) } ${ currencySign }`;
 };
 
-const renderMovements = (user, currencySign) => {
+const renderMovements = (movements, currencySign) => {
   containerMovements.innerHTML = '';
-  const { movements } = user;
 
   movements.forEach((movement, i) => {
     const moveEl = document.createElement('div');
@@ -191,12 +192,29 @@ const renderSummary = (user, currencySign) => {
     interestSum) } ${ currencySign }`;
 };
 
+const sortMovements = (movements, currencySign) => {
+  for (let i = 1; i < movements.length; i++) {
+    if (movements.at(i - 1) > movements.at(i)) {
+      return renderMovements(movements.sort((prev, curr) => prev - curr),
+        currencySign);
+    }
+  }
+
+  return renderMovements(movements.sort((prev, curr) => prev + curr),
+    currencySign);
+};
+
 btnLogin.addEventListener('click', event => {
   event.preventDefault();
+
   const {
     isValid,
     validUser,
-    validUser: { owner, currency }
+    validUser: {
+      owner,
+      currency,
+      movements
+    }
   } = validateAndGetUser();
   const currencySign = currencies.get(currency);
 
@@ -205,7 +223,10 @@ btnLogin.addEventListener('click', event => {
     renderWelcomeMessage(owner);
     renderUIComponent('.date', getCurrentDate());
     renderBalance(validUser, currencySign);
-    renderMovements(validUser, currencySign);
+    renderMovements([ ...movements ], currencySign);
     renderSummary(validUser, currencySign);
+    btnSort.addEventListener('click',
+      () => sortMovements(movements, currencySign));
   }
 });
+
