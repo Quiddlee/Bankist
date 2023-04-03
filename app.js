@@ -83,7 +83,7 @@ const validateAndGetUser = () => {
     elem => elem.value.trim().toLowerCase());
 
   for (const account of accounts) {
-    const { owner, pin, login } = account;
+    const { pin, login } = account;
 
     if (login === inputLogin && pin === +inputPin) {
       isValid = true;
@@ -117,7 +117,8 @@ const renderWelcomeMessage = (userName) => {
 
 const getCurrentDate = () => {
   const date = new Date();
-  const time = `${ date.getHours() }:${ date.getMinutes() }`;
+  const time = `${ date.getHours() }:${ date.getMinutes() < 10 ? '0' +
+    date.getMinutes() : date.getMinutes() }`;
   const day = date.getDate() < 10
     ? `0${ date.getDate() }`
     : date.getDate();
