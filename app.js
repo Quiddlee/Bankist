@@ -69,6 +69,10 @@ const currencies = new Map([
   [ 'USD', '$' ]
 ]);
 
+const formatNumber = (num) => {
+  return num.toFixed(2).replace('.', ',');
+};
+
 const validateAndGetUser = () => {
   let isValid = false;
   let validUser;
@@ -129,17 +133,16 @@ const renderUIComponent = (selectorOrElement, content) => {
   } else {
     selectorOrElement.innerHTML = content;
   }
-
 };
 
-const calculateBalance = (user) => {
-  return user.movements.reduce((curr, prev) => curr + prev);
+const renderBalance = (user, currencySign) => {
+  labelBalance.textContent = `${ formatNumber(user.movements.reduce(
+    (curr, prev) => curr + prev)) } ${ currencySign }`;
 };
 
-const renderMovements = (user) => {
+const renderMovements = (user, currencySign) => {
   containerMovements.innerHTML = '';
-  const { currency, movements } = user;
-  const curr = currencies.get(currency);
+  const { movements } = user;
 
   movements.forEach((movement, i) => {
     const moveEl = document.createElement('div');
@@ -147,31 +150,62 @@ const renderMovements = (user) => {
       ? 'movements__type--deposit'
       : 'movements__type--withdrawal';
     const depositType = depositClass.slice(depositClass.lastIndexOf('-') + 1);
-    const depositDate = getCurrentDate().
+    const moveDate = getCurrentDate().
       slice(0, getCurrentDate().indexOf(','));
 
     moveEl.classList.add('movements__row');
     moveEl.innerHTML = `
-          <div class='movements__type ${ depositClass } '>${ i +
-    1 } ${ depositType }</div>
-          <div class='movements__date'>${ depositDate }</div>
-          <div class='movements__value'>${ (movement.toFixed(2)).replace('.',
-      ',') }${ curr }</div>
+          <div class='movements__type ${ depositClass } '>
+            ${ i + 1 } ${ depositType }
+          </div>
+          <div class='movements__date'>${ moveDate }</div>
+          <div class='movements__value'>
+            ${ formatNumber(movement) } ${ currencySign }
+          </div>
     `;
 
     containerMovements.prepend(moveEl);
   });
 };
 
+const renderSummary = (user, currencySign) => {
+  const { movements, interestRate } = user;
+
+  const summIn = movements.filter(e => e >= 0);
+  const summOut = movements.filter(e => e < 0);
+
+  const interestSum = summIn.reduce((prev, curr) => prev + curr) *
+    (interestRate / 100);
+
+  [
+    [ labelSumIn, summIn ],
+    [ labelSumOut, summOut ],
+  ].forEach(([ label, summ ]) => {
+    const calculatedSumm = summ.reduce((curr, prev) => curr + prev);
+
+    label.textContent = `${ formatNumber(
+      Math.abs(calculatedSumm)) } ${ currencySign }`;
+  });
+
+  labelSumInterest.textContent = `${ formatNumber(
+    interestSum) } ${ currencySign }`;
+};
+
 btnLogin.addEventListener('click', event => {
   event.preventDefault();
-  const { isValid, validUser, validUser: { owner } } = validateAndGetUser();
+  const {
+    isValid,
+    validUser,
+    validUser: { owner, currency }
+  } = validateAndGetUser();
+  const currencySign = currencies.get(currency);
 
   if (isValid) {
     containerApp.style.opacity = '100%';
     renderWelcomeMessage(owner);
     renderUIComponent('.date', getCurrentDate());
-    renderUIComponent(labelBalance, calculateBalance(validUser));
-    renderMovements(validUser);
+    renderBalance(validUser, currencySign);
+    renderMovements(validUser, currencySign);
+    renderSummary(validUser, currencySign);
   }
 });
