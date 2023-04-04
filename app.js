@@ -235,6 +235,28 @@ const setLogOutTimer = () => {
   return logOutTimerId;
 };
 
+const transferMoney = (user, event, currUserCurrencySign) => {
+  event.preventDefault();
+
+  const { movements } = user;
+  const transferTo = inputTransferTo.value;
+  const transferAmount = +inputTransferAmount.value;
+  const currUserMovements = movements;
+
+  document.getElementsByClassName('form--transfer')[0].reset();
+
+  for (const { login, movements: recipientMovements } of accounts) {
+    if (login === transferTo) {
+      currUserMovements.push(-transferAmount);
+      recipientMovements.push(transferAmount);
+      renderMovements(movements, currUserCurrencySign);
+      renderSummary(user, currUserCurrencySign);
+      renderBalance(user, currUserCurrencySign);
+      return;
+    }
+  }
+};
+
 btnLogin.addEventListener('click', event => {
   event.preventDefault();
   logOutTimerId && clearInterval(logOutTimerId);
@@ -252,14 +274,17 @@ btnLogin.addEventListener('click', event => {
 
   if (isValid) {
     containerApp.style.opacity = '100%';
+    setLogOutTimer();
     renderWelcomeMessage(owner);
     renderUIComponent('.date', getCurrentDate());
     renderBalance(validUser, currencySign);
     renderMovements([ ...movements ], currencySign);
     renderSummary(validUser, currencySign);
+
     btnSort.addEventListener('click',
       () => sortMovements(movements, currencySign));
-    setLogOutTimer();
+    btnTransfer.addEventListener('click',
+      event => transferMoney(validUser, event, currencySign));
   }
 });
 
