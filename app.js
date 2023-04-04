@@ -17,6 +17,7 @@ const account1 = {
 const account2 = {
   login: 'jd',
   owner: 'Jessica Davis',
+  currency: 'USD',
   movements: [ 5000, 3400, -150, -790, -3210, -1000, 8500, -30 ],
   interestRate: 1.5,
   pin: 2222,
@@ -75,6 +76,9 @@ const currencies = new Map([
 const formatNumber = (num) => {
   return num.toFixed(2).replace('.', ',');
 };
+const formatNumberBelowTen = (num) => {
+  return num >= 10 ? num : `0${ num }`;
+};
 
 const validateAndGetUser = () => {
   let isValid = false;
@@ -120,14 +124,10 @@ const renderWelcomeMessage = (userName) => {
 
 const getCurrentDate = () => {
   const date = new Date();
-  const time = `${ date.getHours() }:${ date.getMinutes() < 10 ? '0' +
-    date.getMinutes() : date.getMinutes() }`;
-  const day = date.getDate() < 10
-    ? `0${ date.getDate() }`
-    : date.getDate();
-  const month = date.getMonth() + 1 < 10
-    ? `0${ date.getMonth() + 1 }`
-    : date.getMonth() + 1;
+  const time = `${ date.getHours() }:${ formatNumberBelowTen(
+    date.getMinutes()) }`;
+  const day = formatNumberBelowTen(date.getDate());
+  const month = formatNumberBelowTen(date.getMonth() + 1);
 
   return `${ day }/${ month }/${ date.getFullYear() }, ${ time }`;
 };
@@ -209,19 +209,18 @@ const sortMovements = (movements, currencySign) => {
 };
 
 const setLogOutTimer = () => {
-  let minutes = 0;
-  let seconds = 5;
+  let minutes = 10;
+  let seconds = 0;
 
-  labelTimer.textContent = `${ minutes >= 10
-    ? minutes
-    : `0${ minutes }` }:${ seconds >= 10 ? seconds : `0${ seconds
-  }` }`;
+  const renderTimer = () => {
+    labelTimer.textContent = `${ formatNumberBelowTen(
+      minutes) }:${ formatNumberBelowTen(seconds) }`;
+  };
+  renderTimer();
 
   logOutTimerId = setInterval(() => {
     seconds && seconds--;
     if (minutes === 0 && seconds === 0) {
-      seconds = 0;
-      minutes = 0;
       containerApp.style.opacity = '0';
       clearTimeout(logOutTimerId);
     } else if (seconds === 0) {
@@ -229,10 +228,7 @@ const setLogOutTimer = () => {
       minutes && minutes--;
     }
 
-    labelTimer.textContent = `${ minutes >= 10
-      ? minutes
-      : `0${ minutes }` }:${ seconds >= 10 ? seconds : `0${ seconds
-    }` }`;
+    renderTimer();
   }, 1000);
 
   return logOutTimerId;
