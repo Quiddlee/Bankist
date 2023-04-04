@@ -242,7 +242,6 @@ const transferMoney = (user, event, currUserCurrencySign) => {
   const transferTo = inputTransferTo.value;
   const transferAmount = +inputTransferAmount.value;
   const currUserMovements = movements;
-
   document.getElementsByClassName('form--transfer')[0].reset();
 
   for (const { login, movements: recipientMovements } of accounts) {
@@ -255,6 +254,23 @@ const transferMoney = (user, event, currUserCurrencySign) => {
       return;
     }
   }
+};
+
+const requestLoan = (user, event, currencySign) => {
+  event.preventDefault();
+  const amount = +inputLoanAmount.value;
+  inputLoanAmount.value = '';
+  const { movements } = user;
+
+  if (movements.some(move => move > (amount * 10) / 100) && amount > 0) {
+    setTimeout(() => {
+      movements.push(amount);
+      renderMovements(movements, currencySign);
+      renderSummary(user, currencySign);
+      renderBalance(user, currencySign);
+    }, Math.trunc(((Math.random() * 2) + 1) * 1000));
+  }
+
 };
 
 btnLogin.addEventListener('click', event => {
@@ -276,7 +292,7 @@ btnLogin.addEventListener('click', event => {
     containerApp.style.opacity = '100%';
     setLogOutTimer();
     renderWelcomeMessage(owner);
-    renderUIComponent('.date', getCurrentDate());
+    renderUIComponent(labelDate, getCurrentDate());
     renderBalance(validUser, currencySign);
     renderMovements([ ...movements ], currencySign);
     renderSummary(validUser, currencySign);
@@ -285,6 +301,8 @@ btnLogin.addEventListener('click', event => {
       () => sortMovements(movements, currencySign));
     btnTransfer.addEventListener('click',
       event => transferMoney(validUser, event, currencySign));
+    btnLoan.addEventListener('click',
+      event => requestLoan(validUser, event, currencySign));
   }
 });
 
