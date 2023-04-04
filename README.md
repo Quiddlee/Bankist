@@ -1,4 +1,4 @@
-# Bankist | JavaScript Course Project
+# Bankist App | JavaScript Course Project
 
 **Preview: https://quiddlee.github.io/Bankist**
 
