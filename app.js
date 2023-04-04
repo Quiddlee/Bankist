@@ -15,6 +15,7 @@ const account1 = {
 };
 
 const account2 = {
+  login: 'jd',
   owner: 'Jessica Davis',
   movements: [ 5000, 3400, -150, -790, -3210, -1000, 8500, -30 ],
   interestRate: 1.5,
@@ -207,18 +208,40 @@ const sortMovements = (movements, currencySign) => {
     currencySign);
 };
 
-const updateLogOutTimer = () => {
-  let seconds = 600;
+const setLogOutTimer = () => {
+  let minutes = 0;
+  let seconds = 5;
 
-  setInterval(() => {
-    labelTimer.textContent = ``;
+  labelTimer.textContent = `${ minutes >= 10
+    ? minutes
+    : `0${ minutes }` }:${ seconds >= 10 ? seconds : `0${ seconds
+  }` }`;
+
+  logOutTimerId = setInterval(() => {
+    seconds && seconds--;
+    if (minutes === 0 && seconds === 0) {
+      seconds = 0;
+      minutes = 0;
+      containerApp.style.opacity = '0';
+      clearTimeout(logOutTimerId);
+    } else if (seconds === 0) {
+      seconds = 59;
+      minutes && minutes--;
+    }
+
+    labelTimer.textContent = `${ minutes >= 10
+      ? minutes
+      : `0${ minutes }` }:${ seconds >= 10 ? seconds : `0${ seconds
+    }` }`;
   }, 1000);
+
+  return logOutTimerId;
 };
 
 btnLogin.addEventListener('click', event => {
   event.preventDefault();
 
-  if (logOutTimerId) clearTimeout(logOutTimerId);
+  if (logOutTimerId) clearInterval(logOutTimerId);
 
   const {
     isValid,
@@ -240,8 +263,7 @@ btnLogin.addEventListener('click', event => {
     renderSummary(validUser, currencySign);
     btnSort.addEventListener('click',
       () => sortMovements(movements, currencySign));
-
-    // logOutTimerId = startLogOutTimer();
+    setLogOutTimer();
   }
 });
 
