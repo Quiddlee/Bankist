@@ -73,12 +73,8 @@ const currencies = new Map([
   [ 'USD', '$' ]
 ]);
 
-const formatNumber = (num) => {
-  return num.toFixed(2).replace('.', ',');
-};
-const formatNumberBelowTen = (num) => {
-  return num >= 10 ? num : `0${ num }`;
-};
+const formatNumberForEuro = (num) => num.toFixed(2).replace('.', ',');
+const formatNumberBelowTen = (num) => num >= 10 ? num : `0${ num }`;
 
 const validateAndGetUser = () => {
   let isValid = false;
@@ -122,6 +118,10 @@ const renderWelcomeMessage = (userName) => {
     userName.indexOf(' ')) }!`;
 };
 
+const renderGettingStartedMessage = () => {
+  labelWelcome.textContent = 'Log in to get started';
+};
+
 const getCurrentDate = () => {
   const date = new Date();
   const time = `${ date.getHours() }:${ formatNumberBelowTen(
@@ -142,7 +142,7 @@ const renderUIComponent = (selectorOrElement, content) => {
 };
 
 const renderBalance = (user, currencySign) => {
-  labelBalance.textContent = `${ formatNumber(user.movements.reduce(
+  labelBalance.textContent = `${ formatNumberForEuro(user.movements.reduce(
     (curr, prev) => curr + prev)) } ${ currencySign }`;
 };
 
@@ -165,7 +165,7 @@ const renderMovements = (movements, currencySign) => {
           </div>
           <div class='movements__date'>${ moveDate }</div>
           <div class='movements__value'>
-            ${ formatNumber(movement) } ${ currencySign }
+            ${ formatNumberForEuro(movement) } ${ currencySign }
           </div>
     `;
 
@@ -188,11 +188,11 @@ const renderSummary = (user, currencySign) => {
   ].forEach(([ label, summ ]) => {
     const calculatedSumm = summ.reduce((curr, prev) => curr + prev);
 
-    label.textContent = `${ formatNumber(
+    label.textContent = `${ formatNumberForEuro(
       Math.abs(calculatedSumm)) } ${ currencySign }`;
   });
 
-  labelSumInterest.textContent = `${ formatNumber(
+  labelSumInterest.textContent = `${ formatNumberForEuro(
     interestSum) } ${ currencySign }`;
 };
 
@@ -222,6 +222,7 @@ const setLogOutTimer = () => {
     seconds && seconds--;
     if (minutes === 0 && seconds === 0) {
       containerApp.style.opacity = '0';
+      renderGettingStartedMessage();
       clearTimeout(logOutTimerId);
     } else if (seconds === 0) {
       seconds = 59;
@@ -236,8 +237,7 @@ const setLogOutTimer = () => {
 
 btnLogin.addEventListener('click', event => {
   event.preventDefault();
-
-  if (logOutTimerId) clearInterval(logOutTimerId);
+  logOutTimerId && clearInterval(logOutTimerId);
 
   const {
     isValid,
