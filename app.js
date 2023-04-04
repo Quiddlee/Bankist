@@ -65,16 +65,19 @@ const inputLoanAmount = document.querySelector('.form__input--loan-amount');
 const inputCloseUsername = document.querySelector('.form__input--user');
 const inputClosePin = document.querySelector('.form__input--pin');
 
-let logOutTimerId;
-
 // App
 const currencies = new Map([
   [ 'EUR', '€' ],
   [ 'USD', '$' ]
 ]);
+let logOutTimerId, sortMovementsBounded, transferMoneyBounded,
+  requestLoanBounded;
 
 const formatNumberForEuro = (num) => num.toFixed(2).replace('.', ',');
 const formatNumberBelowTen = (num) => num >= 10 ? num : `0${ num }`;
+const addListener = (btn, callback, ...args) => {
+  btn.addEventListener('click', event => callback(...args, event));
+};
 
 const validateAndGetUser = () => {
   let isValid = false;
@@ -95,7 +98,7 @@ const validateAndGetUser = () => {
     }
   }
 
-  document.querySelector('.login').reset();
+  document.getElementsByClassName('login')[0].reset();
   return { isValid, validUser };
 };
 
@@ -114,7 +117,7 @@ const renderWelcomeMessage = (userName) => {
             ? 'Evening'
             : 'Night';
 
-  return labelWelcome.textContent = `${ message }, ${ userName.slice(0,
+  labelWelcome.textContent = `${ message }, ${ userName.slice(0,
     userName.indexOf(' ')) }!`;
 };
 
@@ -197,6 +200,7 @@ const renderSummary = (user, currencySign) => {
 };
 
 const sortMovements = (movements, currencySign) => {
+  console.log(movements);
   for (let i = 1; i < movements.length; i++) {
     if (movements.at(i - 1) > movements.at(i)) {
       return renderMovements(movements.sort((prev, curr) => prev - curr),
@@ -235,7 +239,7 @@ const setLogOutTimer = () => {
   return logOutTimerId;
 };
 
-const transferMoney = (user, event, currUserCurrencySign) => {
+const transferMoney = (user, currUserCurrencySign, event) => {
   event.preventDefault();
 
   const { movements } = user;
@@ -256,7 +260,7 @@ const transferMoney = (user, event, currUserCurrencySign) => {
   }
 };
 
-const requestLoan = (user, event, currencySign) => {
+const requestLoan = (user, currencySign, event) => {
   event.preventDefault();
   const amount = +inputLoanAmount.value;
   inputLoanAmount.value = '';
@@ -297,12 +301,12 @@ btnLogin.addEventListener('click', event => {
     renderMovements([ ...movements ], currencySign);
     renderSummary(validUser, currencySign);
 
-    btnSort.addEventListener('click',
-      () => sortMovements(movements, currencySign));
-    btnTransfer.addEventListener('click',
-      event => transferMoney(validUser, event, currencySign));
-    btnLoan.addEventListener('click',
-      event => requestLoan(validUser, event, currencySign));
+    sortMovementsBounded = sortMovements.bind(null, movements, currencySign);
+    transferMoneyBounded = transferMoney.bind(null, validUser, currencySign);
+    requestLoanBounded = requestLoan.bind(null, validUser, currencySign);
   }
 });
 
+btnSort.addEventListener('click', sortMovementsBounded);
+btnTransfer.addEventListener('click', event => transferMoneyBounded(event));
+btnLoan.addEventListener('click', event => requestLoanBounded(event));
