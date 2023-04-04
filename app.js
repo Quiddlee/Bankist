@@ -71,22 +71,17 @@ const currencies = new Map([
   [ 'USD', '$' ]
 ]);
 let logOutTimerId, sortMovementsBounded, transferMoneyBounded,
-  requestLoanBounded;
+  requestLoanBounded, closeAccountBounded;
 
 const formatNumberForEuro = (num) => num.toFixed(2).replace('.', ',');
 const formatNumberBelowTen = (num) => num >= 10 ? num : `0${ num }`;
-const addListener = (btn, callback, ...args) => {
-  btn.addEventListener('click', event => callback(...args, event));
-};
 
 const validateAndGetUser = () => {
   let isValid = false;
   let validUser;
 
-  const [ inputLogin, inputPin ] = [
-    inputLoginUsername,
-    inputLoginPin ].map(
-    elem => elem.value.trim().toLowerCase());
+  const inputLogin = inputLoginUsername.value.trim().toLowerCase();
+  const inputPin = inputLoginPin.value.trim().toLowerCase();
 
   for (const account of accounts) {
     const { pin, login } = account;
@@ -121,7 +116,8 @@ const renderWelcomeMessage = (userName) => {
     userName.indexOf(' ')) }!`;
 };
 
-const renderGettingStartedMessage = () => {
+const logOutUser = () => {
+  containerApp.style.opacity = '0';
   labelWelcome.textContent = 'Log in to get started';
 };
 
@@ -225,8 +221,7 @@ const setLogOutTimer = () => {
   logOutTimerId = setInterval(() => {
     seconds && seconds--;
     if (minutes === 0 && seconds === 0) {
-      containerApp.style.opacity = '0';
-      renderGettingStartedMessage();
+      logOutUser();
       clearTimeout(logOutTimerId);
     } else if (seconds === 0) {
       seconds = 59;
@@ -274,7 +269,24 @@ const requestLoan = (user, currencySign, event) => {
       renderBalance(user, currencySign);
     }, Math.trunc(((Math.random() * 2) + 1) * 1000));
   }
+};
 
+const closeAccount = (user, event) => {
+  event.preventDefault();
+
+  const { login, pin } = user;
+  const inputLogin = inputCloseUsername.value;
+  const inputPin = +inputClosePin.value;
+  [ inputCloseUsername, inputClosePin ].forEach(e => e.value = '');
+
+  if (inputLogin !== login || inputPin !== pin) return;
+
+  for (const account of accounts) {
+    if (account !== user) continue;
+    accounts.splice(accounts.indexOf(user), 1);
+    logOutUser();
+    break;
+  }
 };
 
 btnLogin.addEventListener('click', event => {
@@ -304,9 +316,11 @@ btnLogin.addEventListener('click', event => {
     sortMovementsBounded = sortMovements.bind(null, movements, currencySign);
     transferMoneyBounded = transferMoney.bind(null, validUser, currencySign);
     requestLoanBounded = requestLoan.bind(null, validUser, currencySign);
+    closeAccountBounded = closeAccount.bind(null, validUser);
   }
 });
 
 btnSort.addEventListener('click', sortMovementsBounded);
 btnTransfer.addEventListener('click', event => transferMoneyBounded(event));
 btnLoan.addEventListener('click', event => requestLoanBounded(event));
+btnClose.addEventListener('click', event => closeAccountBounded(event));
