@@ -117,15 +117,15 @@ const formatNumberBelowTen = num => num >= 10 ? num : `0${ num }`;
 const resetForm = formClass => document.getElementsByClassName(
   formClass)[0].reset();
 
-const createUsernames = accs => {
-  accs.forEach(acc => {
+(() => {
+  accounts.forEach(acc => {
     acc.login = acc.owner.
       toLowerCase().
       split(' ').
       map(word => word.at(0)).
       join('');
   });
-};
+})();
 
 const validateAndGetUser = () => {
   let isValid = false;
@@ -144,6 +144,7 @@ const validateAndGetUser = () => {
   }
 
   resetForm('login');
+  inputLoginPin.blur();
   return { isValid, validUser };
 };
 
@@ -366,8 +367,6 @@ const initializeApp = (user, currencySign) => {
 
 btnLogin.addEventListener('click', event => {
   event.preventDefault();
-  logOutTimerId && clearInterval(logOutTimerId);
-  createUsernames(accounts);
 
   const {
     isValid,
@@ -377,6 +376,8 @@ btnLogin.addEventListener('click', event => {
     } = {}
   } = validateAndGetUser();
   if (!isValid) return;
+
+  logOutTimerId && clearInterval(logOutTimerId);
 
   const currencySign = currencies.get(currency);
   renderUIComponent(labelDate, getCurrentDate());
