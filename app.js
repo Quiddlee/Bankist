@@ -357,9 +357,14 @@ const requestLoan = (user, currencySign, event) => {
 
   if (
     !(movements.some(
-        move => move > (amount * 10) / 100) && amount > 0
-    )
-  ) return;
+        move => move >= amount * 0.1
+      )
+      && amount > 0)
+  ) {
+    resetAllForms();
+    removeInputsFocus();
+    return;
+  }
 
   setTimeout(() => {
     movements.push(amount);
