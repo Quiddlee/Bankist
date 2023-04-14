@@ -114,8 +114,9 @@ let logOutTimerId, sortMovementsBounded, transferMoneyBounded,
 
 const formatNumberForEuro = num => num.toFixed(2).replace('.', ',');
 const formatNumberBelowTen = num => num >= 10 ? num : `0${ num }`;
-const resetForm = formClass => document.getElementsByClassName(
-  formClass)[0].reset();
+const resetAllForms = () => document.querySelectorAll('form').forEach(
+  form => form.reset()
+);
 
 (() => {
   accounts.forEach(acc => {
@@ -143,7 +144,7 @@ const validateAndGetUser = () => {
     break;
   }
 
-  resetForm('login');
+  resetAllForms();
   inputLoginPin.blur();
   return { isValid, validUser };
 };
@@ -193,8 +194,13 @@ const renderUIComponent = (selectorOrElement, content) => {
 };
 
 const renderBalance = (user, currencySign) => {
-  labelBalance.textContent = `${ formatNumberForEuro(user.movements.reduce(
-    (acc, curr) => acc + curr)) } ${ currencySign }`;
+  const balance = user.movements.reduce(
+    (acc, curr) => acc + curr
+  );
+  labelBalance.textContent = `${ formatNumberForEuro(
+    balance) } ${ currencySign }`;
+
+  user.balance = balance;
 };
 
 const formatMovementDate = (date) => {
@@ -299,23 +305,32 @@ const setLogOutTimer = () => {
 const transferMoney = (user, currUserCurrencySign, event) => {
   event.preventDefault();
 
-  const { movements } = user;
-  const transferTo = inputTransferTo.value;
+  const {
+    movements: currUserMovements,
+    balance: currUserBalance,
+    username: currUser
+  } = user;
+  const recipient = inputTransferTo.value;
   const transferAmount = +inputTransferAmount.value;
-  const currUserMovements = movements;
-  resetForm('form--transfer');
+  resetAllForms();
+
+  if (
+    transferAmount <= 0
+    || transferAmount > currUserBalance
+    || recipient === currUser
+  ) return;
 
   for (const { login, movements: recipientMovements } of accounts) {
-    if (login !== transferTo) continue;
+    if (login !== recipient) continue;
 
     currUserMovements.push(-transferAmount);
     recipientMovements.push(transferAmount);
-    renderMovementsSummaryAndBalance(user, currUserCurrencySign);
+    rerenderUI(user, currUserCurrencySign);
     return;
   }
 };
 
-const renderMovementsSummaryAndBalance = (user, currencySign) => {
+const rerenderUI = (user, currencySign) => {
   [ renderMovements, renderSummary, renderBalance ].forEach(
     func => func(user, currencySign));
 };
@@ -325,15 +340,17 @@ const requestLoan = (user, currencySign, event) => {
 
   const amount = +inputLoanAmount.value;
   const { movements } = user;
-  inputLoanAmount.value = '';
+  resetAllForms();
 
   if (
     !(movements.some(
-      move => move > (amount * 10) / 100) && amount > 0)
+        move => move > (amount * 10) / 100) && amount > 0
+    )
   ) return;
+
   setTimeout(() => {
     movements.push(amount);
-    renderMovementsSummaryAndBalance(user, currencySign);
+    rerenderUI(user, currencySign);
   }, Math.trunc(((Math.random() * 2) + 1) * 1000));
 };
 
