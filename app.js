@@ -132,11 +132,11 @@ const validateAndGetUser = () => {
   let validUser;
 
   const inputLogin = inputLoginUsername.value.trim().toLowerCase();
-  const inputPin = inputLoginPin.value.trim().toLowerCase();
+  const inputPin = inputLoginPin.value.trim();
 
   for (const account of accounts) {
     const { pin, login } = account;
-    if (login !== inputLogin && pin !== +inputPin) continue;
+    if (login !== inputLogin || pin !== +inputPin) continue;
 
     isValid = true;
     validUser = account;
@@ -208,7 +208,6 @@ const formatMovementDate = (date) => {
 };
 
 const renderMovements = (user, currencySign) => {
-  containerMovements.innerHTML = '';
   const { movements, movementsDates } = user;
 
   movements.forEach((movement, i) => {
@@ -375,7 +374,7 @@ btnLogin.addEventListener('click', event => {
     validUser,
     validUser: {
       currency
-    }
+    } = {}
   } = validateAndGetUser();
   if (!isValid) return;
 
