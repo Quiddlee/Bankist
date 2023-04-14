@@ -118,6 +118,17 @@ const resetAllForms = () => document.querySelectorAll('form').forEach(
   form => form.reset()
 );
 
+const removeInputsFocus = () => {
+  [
+    document.querySelectorAll('.login__input'),
+    document.querySelectorAll('.form__input')
+  ].forEach(
+    arr => arr.forEach(
+      input => input.blur()
+    )
+  );
+};
+
 (() => {
   accounts.forEach(acc => {
     acc.login = acc.owner.
@@ -144,8 +155,6 @@ const validateAndGetUser = () => {
     break;
   }
 
-  resetAllForms();
-  inputLoginPin.blur();
   return { isValid, validUser };
 };
 
@@ -312,7 +321,6 @@ const transferMoney = (user, currUserCurrencySign, event) => {
   } = user;
   const recipient = inputTransferTo.value;
   const transferAmount = +inputTransferAmount.value;
-  resetAllForms();
 
   if (
     transferAmount <= 0
@@ -330,9 +338,15 @@ const transferMoney = (user, currUserCurrencySign, event) => {
   }
 };
 
-const rerenderUI = (user, currencySign) => {
+const rerenderUI = (user, currencySign, resetForms = true) => {
   [ renderMovements, renderSummary, renderBalance ].forEach(
-    func => func(user, currencySign));
+    func => func(user, currencySign)
+  );
+
+  if (resetForms) {
+    resetAllForms();
+    removeInputsFocus();
+  }
 };
 
 const requestLoan = (user, currencySign, event) => {
@@ -340,7 +354,6 @@ const requestLoan = (user, currencySign, event) => {
 
   const amount = +inputLoanAmount.value;
   const { movements } = user;
-  resetAllForms();
 
   if (
     !(movements.some(
@@ -350,8 +363,11 @@ const requestLoan = (user, currencySign, event) => {
 
   setTimeout(() => {
     movements.push(amount);
-    rerenderUI(user, currencySign);
+    rerenderUI(user, currencySign, false);
   }, Math.trunc(((Math.random() * 2) + 1) * 1000));
+
+  resetAllForms();
+  removeInputsFocus();
 };
 
 const closeAccount = (user, event) => {
@@ -378,8 +394,7 @@ const initializeApp = (user, currencySign) => {
 
   setLogOutTimer();
   renderWelcomeMessage(owner);
-  [ renderBalance, renderMovements, renderSummary ].forEach(
-    func => func(user, currencySign));
+  rerenderUI(user, currencySign);
 };
 
 btnLogin.addEventListener('click', event => {
