@@ -110,7 +110,8 @@ const currencies = new Map([
   [ 'UAH', '₴' ],
 ]);
 let logOutTimerId, sortMovementsBounded, transferMoneyBounded,
-  requestLoanBounded, closeAccountBounded;
+  requestLoanBounded, closeAccountBounded, sorted;
+sorted = false;
 
 const formatNumberForEuro = num => num.toFixed(2).replace('.', ',');
 const formatNumberBelowTen = num => num >= 10 ? num : `0${ num }`;
@@ -223,12 +224,15 @@ const formatMovementDate = (date) => {
       slice(0, 11);
 };
 
-const renderMovements = (user, currencySign) => {
+const renderMovements = (user, currencySign, sort = false) => {
+  containerMovements.innerHTML = '';
   const { movements, movementsDates } = user;
 
-  movements.forEach((movement, i) => {
+  const movs = sort ? [ ...movements ].sort((a, b) => a - b) : movements;
+
+  movs.forEach((movement, i) => {
     const moveEl = document.createElement('div');
-    const depositClass = movement >= 0 ? 'deposit' : 'withdrawal';
+    const depositClass = movement < 0 ? 'withdrawal' : 'deposit';
     const depositType = depositClass.slice(depositClass.lastIndexOf('-') + 1);
     const currMovementDate = formatMovementDate(movementsDates[i]);
 
@@ -268,20 +272,6 @@ const renderSummary = (user, currencySign) => {
 
   labelSumInterest.textContent = `${ formatNumberForEuro(
     interestSum) } ${ currencySign }`;
-};
-
-const sortMovements = (user, currencySign) => {
-  const { movements } = user;
-
-  for (let i = movements.length; i > 0; --i) {
-    if (!(movements.at(i + 1) < movements.at(i))) continue;
-
-    movements.sort((prev, curr) => prev - curr);
-    return renderMovements(user, currencySign);
-  }
-
-  movements.sort((prev, curr) => prev + curr);
-  renderMovements(user, currencySign);
 };
 
 const setLogOutTimer = () => {
@@ -420,13 +410,16 @@ btnLogin.addEventListener('click', event => {
   renderUIComponent(labelDate, getCurrentDate());
   initializeApp(validUser, currencySign);
 
-  sortMovementsBounded = sortMovements.bind(null, validUser, currencySign);
+  sortMovementsBounded = renderMovements.bind(null, validUser, currencySign);
   transferMoneyBounded = transferMoney.bind(null, validUser, currencySign);
   requestLoanBounded = requestLoan.bind(null, validUser, currencySign);
   closeAccountBounded = closeAccount.bind(null, validUser);
 });
 
-btnSort.addEventListener('click', () => sortMovementsBounded());
+btnSort.addEventListener('click', () => {
+  sortMovementsBounded(!sorted);
+  sorted = !sorted;
+});
 btnTransfer.addEventListener('click', event => transferMoneyBounded(event));
 btnLoan.addEventListener('click', event => requestLoanBounded(event));
 btnClose.addEventListener('click', event => closeAccountBounded(event));
