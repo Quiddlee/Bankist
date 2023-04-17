@@ -84,8 +84,18 @@ let logOutTimerId, sortMovementsBounded, transferMoneyBounded,
   requestLoanBounded, closeAccountBounded, sorted;
 sorted = false;
 
+(() => {
+  accounts.forEach(acc => {
+    acc.login = acc.owner.
+      toLowerCase().
+      split(' ').
+      map(word => word.at(0)).
+      join('');
+  });
+})();
+
 const formatNumberForEuro = num => num.toFixed(2).replace('.', ',');
-const formatNumberBelowTen = num => num >= 10 ? num : `0${ num }`;
+const padZero = num => `${ num }`.padStart(2, 0);
 const resetAllForms = () => document.querySelectorAll('form').forEach(
   form => form.reset()
 );
@@ -100,16 +110,6 @@ const removeInputsFocus = () => {
     )
   );
 };
-
-(() => {
-  accounts.forEach(acc => {
-    acc.login = acc.owner.
-      toLowerCase().
-      split(' ').
-      map(word => word.at(0)).
-      join('');
-  });
-})();
 
 const validateAndGetUser = () => {
   let isValid = false;
@@ -154,15 +154,14 @@ const logOutUser = () => {
   labelWelcome.textContent = 'Log in to get started';
 };
 
-const getCurrentDate = () => {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = formatNumberBelowTen(date.getMonth() + 1);
-  const day = formatNumberBelowTen(date.getDate());
-  const time = `${ date.getHours() }:${ formatNumberBelowTen(
-    date.getMinutes()) }`;
+const createDate = (date = new Date(), withTime = true) => {
+  const currDate = new Date(date);
+  const year = currDate.getFullYear();
+  const month = padZero(currDate.getMonth() + 1);
+  const day = padZero(currDate.getDate());
+  const time = currDate.toTimeString().match(/\d\d:\d\d/);
 
-  return `${ day }/${ month }/${ year }, ${ time }`;
+  return `${ day }/${ month }/${ year } ` + (withTime ? time : '');
 };
 
 const renderUIComponent = (selectorOrElement, content) => {
@@ -184,35 +183,23 @@ const renderBalance = (user, currencySign) => {
   user.balance = balance;
 };
 
-const formatMovementDate = (date) => {
-  return date?.slice(0, date?.
-      indexOf('T'))?.
-      split('-')?.
-      reverse()?.
-      join('/')
-    ||
-    getCurrentDate().
-      slice(0, 11);
-};
-
 const renderMovements = (user, currencySign, sort = false) => {
   containerMovements.innerHTML = '';
-  const { movements, movementsDates } = user;
 
+  const { movements, movementsDates } = user;
   const movs = sort ? [ ...movements ].sort((a, b) => a - b) : movements;
 
   movs.forEach((movement, i) => {
     const moveEl = document.createElement('div');
     const depositClass = movement < 0 ? 'withdrawal' : 'deposit';
-    const depositType = depositClass.slice(depositClass.lastIndexOf('-') + 1);
-    const currMovementDate = formatMovementDate(movementsDates[i]);
+    const movDate = createDate(movementsDates[i], false);
 
     moveEl.classList.add('movements__row');
     moveEl.innerHTML = `
           <div class='movements__type movements__type--${ depositClass } '>
-            ${ i + 1 } ${ depositType }
+            ${ i + 1 } ${ depositClass }
           </div>
-          <div class='movements__date'>${ currMovementDate }</div>
+          <div class='movements__date'>${ movDate }</div>
           <div class='movements__value'>
             ${ formatNumberForEuro(movement) } ${ currencySign }
           </div>
@@ -250,8 +237,8 @@ const setLogOutTimer = () => {
   let seconds = 0;
 
   const renderTimer = () => {
-    labelTimer.textContent = `${ formatNumberBelowTen(
-      minutes) }:${ formatNumberBelowTen(seconds) }`;
+    labelTimer.textContent = `${ padZero(
+      minutes) }:${ padZero(seconds) }`;
   };
   renderTimer();
 
@@ -278,6 +265,7 @@ const transferMoney = (user, currUserCurrencySign, event) => {
   const {
     movements: currUserMovements,
     balance: currUserBalance,
+    movementsDates: currUserMovDates,
     username: currUser
   } = user;
   const recipient = inputTransferTo.value;
@@ -289,11 +277,18 @@ const transferMoney = (user, currUserCurrencySign, event) => {
     || recipient === currUser
   ) return;
 
-  for (const { login, movements: recipientMovements } of accounts) {
+  for (const {
+    login,
+    movements: recipientMovements,
+    movementsDates: recipientMovDates
+  } of accounts) {
     if (login !== recipient) continue;
 
     currUserMovements.push(-transferAmount);
+    currUserMovDates.push(new Date().toISOString());
+
     recipientMovements.push(transferAmount);
+    recipientMovDates.push(new Date().toISOString());
     rerenderUI(user, currUserCurrencySign);
     return;
   }
@@ -313,8 +308,8 @@ const rerenderUI = (user, currencySign, resetForms = true) => {
 const requestLoan = (user, currencySign, event) => {
   event.preventDefault();
 
-  const amount = +inputLoanAmount.value;
-  const { movements } = user;
+  const amount = Math.floor(inputLoanAmount.value);
+  const { movements, movementsDates } = user;
 
   if (
     !(movements.some(
@@ -329,6 +324,7 @@ const requestLoan = (user, currencySign, event) => {
 
   setTimeout(() => {
     movements.push(amount);
+    movementsDates.push(new Date().toISOString());
     rerenderUI(user, currencySign, false);
   }, Math.trunc(((Math.random() * 2) + 1) * 1000));
 
@@ -363,29 +359,32 @@ const initializeApp = (user, currencySign) => {
   rerenderUI(user, currencySign);
 };
 
-btnLogin.addEventListener('click', event => {
-  event.preventDefault();
+// btnLogin.addEventListener('click', event => {
+//   event.preventDefault();
 
-  const {
-    isValid,
-    validUser,
-    validUser: {
-      currency
-    } = {}
-  } = validateAndGetUser();
-  if (!isValid) return;
+// const {
+//   isValid,
+//   validUser,
+//   validUser: {
+//     currency
+//   } = {}
+// } = validateAndGetUser();
+// if (!isValid) return;
 
-  logOutTimerId && clearInterval(logOutTimerId);
+const validUser = account1;
+const { currency } = account1;
 
-  const currencySign = currencies.get(currency);
-  renderUIComponent(labelDate, getCurrentDate());
-  initializeApp(validUser, currencySign);
+logOutTimerId && clearInterval(logOutTimerId);
 
-  sortMovementsBounded = renderMovements.bind(null, validUser, currencySign);
-  transferMoneyBounded = transferMoney.bind(null, validUser, currencySign);
-  requestLoanBounded = requestLoan.bind(null, validUser, currencySign);
-  closeAccountBounded = closeAccount.bind(null, validUser);
-});
+const currencySign = currencies.get(currency);
+renderUIComponent(labelDate, createDate());
+initializeApp(validUser, currencySign);
+
+sortMovementsBounded = renderMovements.bind(null, validUser, currencySign);
+transferMoneyBounded = transferMoney.bind(null, validUser, currencySign);
+requestLoanBounded = requestLoan.bind(null, validUser, currencySign);
+closeAccountBounded = closeAccount.bind(null, validUser);
+// });
 
 btnSort.addEventListener('click', () => {
   sortMovementsBounded(!sorted);
