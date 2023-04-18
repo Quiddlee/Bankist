@@ -74,15 +74,24 @@ const inputCloseUsername = document.querySelector('.form__input--user');
 const inputClosePin = document.querySelector('.form__input--pin');
 
 // App
-const currencies = new Map([
+const options = {
+  hour: 'numeric',
+  minute: 'numeric',
+  day: 'numeric',
+  month: 'numeric',
+  year: 'numeric',
+};
+
+const CURRENCIES = new Map([
   [ 'EUR', '€' ],
   [ 'USD', '$' ],
   [ 'GBP', '£' ],
   [ 'UAH', '₴' ],
 ]);
-let logOutTimerId, sortMovementsBounded, transferMoneyBounded,
-  requestLoanBounded, closeAccountBounded, sorted;
-sorted = false;
+
+let logOutTimerId, sortMovementsBounded,
+  transferMoneyBounded, requestLoanBounded,
+  closeAccountBounded, sorted = false;
 
 (() => {
   accounts.forEach(acc => {
@@ -153,7 +162,7 @@ const logOutUser = () => {
   labelWelcome.textContent = 'Log in to get started';
 };
 
-const createDate = (date = new Date(), withTime = true) => {
+const createDate = (date = new Date(), locale) => {
   const currDate = new Date(date);
   const calcDaysPassed = (date1, date2) => Math.round(Math.abs(
     (date2 - date1) / (1000 * 60 * 60 * 24)
@@ -165,21 +174,7 @@ const createDate = (date = new Date(), withTime = true) => {
   if (daysPassed === 1) return 'Yesterday';
   if (daysPassed <= 7) return `${ daysPassed } days ago`;
 
-  const year = currDate.getFullYear();
-  const month = padZero(currDate.getMonth() + 1);
-  const day = padZero(currDate.getDate());
-  const time = currDate.toTimeString().match(/\d\d:\d\d/);
-
-  return `${ day }/${ month }/${ year } ` + (withTime ? time : '');
-};
-
-const renderUIComponent = (selectorOrElement, content) => {
-  if (typeof selectorOrElement === 'string') {
-    document.querySelector(
-      selectorOrElement).innerHTML = content;
-  } else {
-    selectorOrElement.innerHTML = content;
-  }
+  return new Intl.DateTimeFormat(locale).format(currDate);
 };
 
 const renderBalance = (user, currencySign) => {
@@ -195,13 +190,13 @@ const renderBalance = (user, currencySign) => {
 const renderMovements = (user, currencySign, sort = false) => {
   containerMovements.innerHTML = '';
 
-  const { movements, movementsDates } = user;
+  const { movements, movementsDates, locale } = user;
   const movs = sort ? [ ...movements ].sort((a, b) => a - b) : movements;
 
   movs.forEach((movement, i) => {
     const moveEl = document.createElement('div');
     const depositClass = movement < 0 ? 'withdrawal' : 'deposit';
-    const movDate = createDate(movementsDates[i], false);
+    const movDate = createDate(movementsDates[i], locale);
 
     moveEl.classList.add('movements__row');
     moveEl.innerHTML = `
@@ -360,8 +355,10 @@ const closeAccount = (user, event) => {
 };
 
 const initializeApp = (user, currencySign) => {
-  const { owner } = user;
+  const now = new Date();
+  const { owner, locale } = user;
   containerApp.style.opacity = '100%';
+  labelDate.textContent = new Intl.DateTimeFormat(locale, options).format(now);
 
   setLogOutTimer();
   renderWelcomeMessage(owner);
@@ -381,12 +378,11 @@ btnLogin.addEventListener('click', event => {
   if (!isValid) return;
 
 // const validUser = account1;
-// const { currency } = account1;
+// const { currency, locale } = account1;
 
   logOutTimerId && clearInterval(logOutTimerId);
 
-  const currencySign = currencies.get(currency);
-  renderUIComponent(labelDate, createDate());
+  const currencySign = CURRENCIES.get(currency);
   initializeApp(validUser, currencySign);
 
   sortMovementsBounded = renderMovements.bind(null, validUser, currencySign);
