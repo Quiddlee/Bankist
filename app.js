@@ -74,20 +74,13 @@ const inputCloseUsername = document.querySelector('.form__input--user');
 const inputClosePin = document.querySelector('.form__input--pin');
 
 // App
-const options = {
+const dateFormatOptions = {
   hour: 'numeric',
   minute: 'numeric',
   day: 'numeric',
   month: 'numeric',
   year: 'numeric',
 };
-
-const CURRENCIES = new Map([
-  [ 'EUR', '€' ],
-  [ 'USD', '$' ],
-  [ 'GBP', '£' ],
-  [ 'UAH', '₴' ],
-]);
 
 let logOutTimerId, sortMovementsBounded,
   transferMoneyBounded, requestLoanBounded,
@@ -103,20 +96,18 @@ let logOutTimerId, sortMovementsBounded,
   });
 })();
 
-const formatNumberForEuro = num => num.toFixed(2).replace('.', ',');
-const padZero = num => `${ num }`.padStart(2, 0);
-const resetAllForms = () => document.querySelectorAll('form').
-  forEach(form => form.reset());
+const formatNumber = (num, currency, locale) => {
+  const numFormatOptions = new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: currency
+  });
 
-const removeInputsFocus = () => {
-  [
-    document.querySelectorAll('.login__input'),
-    document.querySelectorAll('.form__input')
-  ].forEach(
-    arr => arr.forEach(
-      input => input.blur()
-    )
-  );
+  return numFormatOptions.format(num);
+};
+const padZero = num => `${ num }`.padStart(2, 0);
+const resetAllForms = () => {
+  document.querySelectorAll('input').forEach(input => input.blur());
+  document.querySelectorAll('form').forEach(form => form.reset());
 };
 
 const validateAndGetUser = () => {
@@ -138,7 +129,7 @@ const validateAndGetUser = () => {
   return { isValid, validUser };
 };
 
-const renderWelcomeMessage = (userName) => {
+const renderWelcomeMessage = userName => {
   const hours = new Date().getHours();
   let message = 'Good ';
 
@@ -177,26 +168,35 @@ const createDate = (date = new Date(), locale) => {
   return new Intl.DateTimeFormat(locale).format(currDate);
 };
 
-const renderBalance = (user, currencySign) => {
-  const balance = user.movements.reduce(
+const renderBalance = user => {
+  const { currency, locale, movements } = user;
+  const balance = movements.reduce(
     (acc, curr) => acc + curr
   );
-  labelBalance.textContent = `${ formatNumberForEuro(
-    balance) } ${ currencySign }`;
+  labelBalance.textContent = `${ formatNumber(balance, currency, locale) }`;
 
   user.balance = balance;
 };
 
-const renderMovements = (user, currencySign, sort = false) => {
+const renderMovements = (
+  {
+    movements,
+    movementsDates,
+    locale,
+    currency: userCurrency
+  },
+  currencySign,
+  sort = false
+) => {
   containerMovements.innerHTML = '';
 
-  const { movements, movementsDates, locale } = user;
   const movs = sort ? [ ...movements ].sort((a, b) => a - b) : movements;
 
   movs.forEach((movement, i) => {
     const moveEl = document.createElement('div');
     const depositClass = movement < 0 ? 'withdrawal' : 'deposit';
     const movDate = createDate(movementsDates[i], locale);
+    const formattedMov = formatNumber(movement, userCurrency, locale);
 
     moveEl.classList.add('movements__row');
     moveEl.innerHTML = `
@@ -204,23 +204,19 @@ const renderMovements = (user, currencySign, sort = false) => {
             ${ i + 1 } ${ depositClass }
           </div>
           <div class='movements__date'>${ movDate }</div>
-          <div class='movements__value'>
-            ${ formatNumberForEuro(movement) } ${ currencySign }
-          </div>
+          <div class='movements__value'>${ formattedMov }</div>
     `;
 
     containerMovements.prepend(moveEl);
   });
 };
 
-const renderSummary = (user, currencySign) => {
-  const { movements, interestRate } = user;
-
+const renderSummary = ({ movements, interestRate, currency, locale }) => {
   const summIn = movements.filter(e => e >= 0);
   const summOut = movements.filter(e => e < 0);
 
-  const interestSum = summIn.reduce((prev, curr) => prev + curr) *
-    (interestRate / 100);
+  const interestSum = Math.floor(summIn.reduce((prev, curr) => prev + curr) *
+    (interestRate / 100));
 
   [
     [ labelSumIn, summIn ],
@@ -228,12 +224,12 @@ const renderSummary = (user, currencySign) => {
   ].forEach(([ label, summ ]) => {
     const calculatedSumm = summ.reduce((curr, prev) => curr + prev, 0);
 
-    label.textContent = `${ formatNumberForEuro(
-      Math.abs(calculatedSumm)) } ${ currencySign }`;
+    label.textContent = `${ formatNumber(Math.floor(
+      Math.abs(calculatedSumm)), currency, locale) }`;
   });
 
-  labelSumInterest.textContent = `${ formatNumberForEuro(
-    interestSum) } ${ currencySign }`;
+  labelSumInterest.textContent = `${ formatNumber(interestSum, currency,
+    locale) }`;
 };
 
 const setLogOutTimer = () => {
@@ -263,7 +259,7 @@ const setLogOutTimer = () => {
   return logOutTimerId;
 };
 
-const transferMoney = (user, currUserCurrencySign, event) => {
+const transferMoney = (user, event) => {
   event.preventDefault();
 
   const {
@@ -293,23 +289,19 @@ const transferMoney = (user, currUserCurrencySign, event) => {
 
     recipientMovements.push(transferAmount);
     recipientMovDates.push(new Date().toISOString());
-    rerenderUI(user, currUserCurrencySign);
+    rerenderUI(user);
     return;
   }
 };
 
-const rerenderUI = (user, currencySign, resetForms = true) => {
+const rerenderUI = (user, resetForms = true) => {
   [ renderMovements, renderSummary, renderBalance ].forEach(
-    func => func(user, currencySign)
+    func => func(user)
   );
-
-  if (resetForms) {
-    resetAllForms();
-    removeInputsFocus();
-  }
+  if (resetForms) resetAllForms();
 };
 
-const requestLoan = (user, currencySign, event) => {
+const requestLoan = (user, event) => {
   event.preventDefault();
 
   const amount = Math.floor(inputLoanAmount.value);
@@ -321,19 +313,16 @@ const requestLoan = (user, currencySign, event) => {
       )
       && amount > 0)
   ) {
-    resetAllForms();
-    removeInputsFocus();
-    return;
+    return resetAllForms();
   }
 
   setTimeout(() => {
     movements.push(amount);
     movementsDates.push(new Date().toISOString());
-    rerenderUI(user, currencySign, false);
+    rerenderUI(user, false);
   }, Math.trunc(((Math.random() * 2) + 1) * 1000));
 
   resetAllForms();
-  removeInputsFocus();
 };
 
 const closeAccount = (user, event) => {
@@ -349,45 +338,37 @@ const closeAccount = (user, event) => {
   for (const account of accounts) {
     if (account !== user) continue;
     accounts.splice(accounts.indexOf(user), 1);
-    logOutUser();
-    break;
+    return logOutUser();
   }
 };
 
-const initializeApp = (user, currencySign) => {
+const initializeApp = user => {
   const now = new Date();
   const { owner, locale } = user;
   containerApp.style.opacity = '100%';
-  labelDate.textContent = new Intl.DateTimeFormat(locale, options).format(now);
+  labelDate.textContent = new Intl.DateTimeFormat(locale,
+    dateFormatOptions).format(now);
 
   setLogOutTimer();
   renderWelcomeMessage(owner);
-  rerenderUI(user, currencySign);
+  rerenderUI(user);
 };
 
 btnLogin.addEventListener('click', event => {
   event.preventDefault();
 
-  const {
-    isValid,
-    validUser,
-    validUser: {
-      currency
-    } = {}
-  } = validateAndGetUser();
+  const { isValid, validUser, } = validateAndGetUser();
   if (!isValid) return;
 
 // const validUser = account1;
-// const { currency, locale } = account1;
+// const { currency } = account1;
 
   logOutTimerId && clearInterval(logOutTimerId);
+  initializeApp(validUser);
 
-  const currencySign = CURRENCIES.get(currency);
-  initializeApp(validUser, currencySign);
-
-  sortMovementsBounded = renderMovements.bind(null, validUser, currencySign);
-  transferMoneyBounded = transferMoney.bind(null, validUser, currencySign);
-  requestLoanBounded = requestLoan.bind(null, validUser, currencySign);
+  sortMovementsBounded = renderMovements.bind(null, validUser);
+  transferMoneyBounded = transferMoney.bind(null, validUser);
+  requestLoanBounded = requestLoan.bind(null, validUser);
   closeAccountBounded = closeAccount.bind(null, validUser);
 });
 
