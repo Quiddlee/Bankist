@@ -12,14 +12,14 @@ const account1 = {
   pin: 1111,
 
   movementsDates: [
-    '2019-11-18T21:31:17.178Z',
-    '2019-12-23T07:42:02.383Z',
-    '2020-01-28T09:15:04.904Z',
-    '2020-04-01T10:17:24.185Z',
-    '2020-05-08T14:11:59.604Z',
-    '2020-05-27T17:01:17.194Z',
-    '2020-07-11T23:36:17.929Z',
-    '2020-07-12T10:51:36.790Z',
+    '2021-11-18T21:31:17.178Z',
+    '2021-12-23T07:42:02.383Z',
+    '2022-01-28T09:15:04.904Z',
+    '2022-04-01T10:17:24.185Z',
+    '2022-05-08T14:11:59.604Z',
+    '2023-04-12T17:01:17.194Z',
+    '2023-04-14T23:36:17.929Z',
+    '2023-04-17T10:51:36.790Z',
   ],
   currency: 'EUR',
   locale: 'pt-PT', // de-DE
@@ -96,9 +96,8 @@ sorted = false;
 
 const formatNumberForEuro = num => num.toFixed(2).replace('.', ',');
 const padZero = num => `${ num }`.padStart(2, 0);
-const resetAllForms = () => document.querySelectorAll('form').forEach(
-  form => form.reset()
-);
+const resetAllForms = () => document.querySelectorAll('form').
+  forEach(form => form.reset());
 
 const removeInputsFocus = () => {
   [
@@ -156,6 +155,16 @@ const logOutUser = () => {
 
 const createDate = (date = new Date(), withTime = true) => {
   const currDate = new Date(date);
+  const calcDaysPassed = (date1, date2) => Math.round(Math.abs(
+    (date2 - date1) / (1000 * 60 * 60 * 24)
+  ));
+
+  const daysPassed = calcDaysPassed(new Date(), currDate);
+
+  if (daysPassed === 0) return 'Today';
+  if (daysPassed === 1) return 'Yesterday';
+  if (daysPassed <= 7) return `${ daysPassed } days ago`;
+
   const year = currDate.getFullYear();
   const month = padZero(currDate.getMonth() + 1);
   const day = padZero(currDate.getDate());
@@ -359,32 +368,32 @@ const initializeApp = (user, currencySign) => {
   rerenderUI(user, currencySign);
 };
 
-// btnLogin.addEventListener('click', event => {
-//   event.preventDefault();
+btnLogin.addEventListener('click', event => {
+  event.preventDefault();
 
-// const {
-//   isValid,
-//   validUser,
-//   validUser: {
-//     currency
-//   } = {}
-// } = validateAndGetUser();
-// if (!isValid) return;
+  const {
+    isValid,
+    validUser,
+    validUser: {
+      currency
+    } = {}
+  } = validateAndGetUser();
+  if (!isValid) return;
 
-const validUser = account1;
-const { currency } = account1;
+// const validUser = account1;
+// const { currency } = account1;
 
-logOutTimerId && clearInterval(logOutTimerId);
+  logOutTimerId && clearInterval(logOutTimerId);
 
-const currencySign = currencies.get(currency);
-renderUIComponent(labelDate, createDate());
-initializeApp(validUser, currencySign);
+  const currencySign = currencies.get(currency);
+  renderUIComponent(labelDate, createDate());
+  initializeApp(validUser, currencySign);
 
-sortMovementsBounded = renderMovements.bind(null, validUser, currencySign);
-transferMoneyBounded = transferMoney.bind(null, validUser, currencySign);
-requestLoanBounded = requestLoan.bind(null, validUser, currencySign);
-closeAccountBounded = closeAccount.bind(null, validUser);
-// });
+  sortMovementsBounded = renderMovements.bind(null, validUser, currencySign);
+  transferMoneyBounded = transferMoney.bind(null, validUser, currencySign);
+  requestLoanBounded = requestLoan.bind(null, validUser, currencySign);
+  closeAccountBounded = closeAccount.bind(null, validUser);
+});
 
 btnSort.addEventListener('click', () => {
   sortMovementsBounded(!sorted);
