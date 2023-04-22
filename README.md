@@ -1,6 +1,6 @@
 # Bankist App | JavaScript Course Project
 
-**Preview: https://quiddlee.github.io/Bankist**
+**Preview: https://quiddlee.github.io/Bankist-App**
 
 **User 1:**
 - **login** - js
