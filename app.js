@@ -185,7 +185,6 @@ const renderMovements = (
     locale,
     currency: userCurrency
   },
-  currencySign,
   sort = false
 ) => {
   containerMovements.innerHTML = '';
