@@ -19,10 +19,10 @@ const account1 = {
     '2022-05-08T14:11:59.604Z',
     '2023-04-12T17:01:17.194Z',
     '2023-04-14T23:36:17.929Z',
-    '2023-04-17T10:51:36.790Z',
+    '2023-04-17T10:51:36.790Z'
   ],
   currency: 'EUR',
-  locale: 'pt-PT', // de-DE
+  locale: 'pt-PT' // de-DE
 };
 
 const account2 = {
@@ -39,10 +39,10 @@ const account2 = {
     '2020-02-05T16:33:06.386Z',
     '2020-04-10T14:43:26.374Z',
     '2020-06-25T18:49:59.371Z',
-    '2020-07-26T12:01:20.894Z',
+    '2020-07-26T12:01:20.894Z'
   ],
   currency: 'USD',
-  locale: 'en-US',
+  locale: 'en-US'
 };
 
 const accounts = [ account1, account2 ];
@@ -79,7 +79,7 @@ const dateFormatOptions = {
   minute: 'numeric',
   day: 'numeric',
   month: 'numeric',
-  year: 'numeric',
+  year: 'numeric'
 };
 
 let logOutTimerId, sortMovementsBounded,
@@ -220,7 +220,7 @@ const renderSummary = ({ movements, interestRate, currency, locale }) => {
 
   [
     [ labelSumIn, summIn ],
-    [ labelSumOut, summOut ],
+    [ labelSumOut, summOut ]
   ].forEach(([ label, summ ]) => {
     const calculatedSumm = summ.reduce((curr, prev) => curr + prev, 0);
 
@@ -233,27 +233,22 @@ const renderSummary = ({ movements, interestRate, currency, locale }) => {
 };
 
 const setLogOutTimer = () => {
-  let minutes = 10;
-  let seconds = 0;
+  logOutTimerId && clearInterval(logOutTimerId);
 
-  const renderTimer = () => {
-    labelTimer.textContent = `${ padZero(
-      minutes) }:${ padZero(seconds) }`;
+  let limit = 600;
+
+  const renderTimer = limit => {
+    const min = Math.floor(limit / 60);
+    const sec = Math.floor(limit % 60);
+    labelTimer.textContent = `${ padZero(min) }:${ padZero(sec) }`;
   };
-  renderTimer();
+  renderTimer(limit);
 
   logOutTimerId = setInterval(() => {
-    seconds && seconds--;
+    if (limit > 0) return renderTimer(--limit);
 
-    if (minutes === 0 && seconds === 0) {
-      logOutUser();
-      clearTimeout(logOutTimerId);
-    } else if (seconds === 0) {
-      seconds = 59;
-      minutes && minutes--;
-    }
-
-    renderTimer();
+    logOutUser();
+    clearInterval(logOutTimerId);
   }, 1000);
 
   return logOutTimerId;
@@ -261,6 +256,7 @@ const setLogOutTimer = () => {
 
 const transferMoney = (user, event) => {
   event.preventDefault();
+  setLogOutTimer();
 
   const {
     movements: currUserMovements,
@@ -303,6 +299,7 @@ const rerenderUI = (user, resetForms = true) => {
 
 const requestLoan = (user, event) => {
   event.preventDefault();
+  setLogOutTimer();
 
   const amount = Math.floor(inputLoanAmount.value);
   const { movements, movementsDates } = user;
@@ -357,19 +354,22 @@ const initializeApp = user => {
 btnLogin.addEventListener('click', event => {
   event.preventDefault();
 
-  const { isValid, validUser, } = validateAndGetUser();
+  const { isValid, validUser } = validateAndGetUser();
   if (!isValid) return;
 
-// const validUser = account1;
-// const { currency } = account1;
-
-  logOutTimerId && clearInterval(logOutTimerId);
   initializeApp(validUser);
 
-  sortMovementsBounded = renderMovements.bind(null, validUser);
-  transferMoneyBounded = transferMoney.bind(null, validUser);
-  requestLoanBounded = requestLoan.bind(null, validUser);
-  closeAccountBounded = closeAccount.bind(null, validUser);
+  [
+    sortMovementsBounded,
+    transferMoneyBounded,
+    requestLoanBounded,
+    closeAccountBounded
+  ] = [
+    renderMovements,
+    transferMoney,
+    requestLoan,
+    closeAccount
+  ].map(func => func.bind(null, validUser));
 });
 
 btnSort.addEventListener('click', () => {
