@@ -2,13 +2,15 @@
 
 **Preview: https://quiddlee.github.io/Bankist**
 
-**User 1**
+**User 1:**
 - **login** - js
 - **pin** - 1111
 
-**User 2**
+**User 2:**
 - **login** - jd
 - **pin** - 2222
+
+#
 
 **Stack:**
 
